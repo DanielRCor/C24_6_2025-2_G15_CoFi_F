@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "6133589505",
+    "project_id": "cofi-auth",
+    "storage_bucket": "cofi-auth.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6133589505:android:a6d9fba1e2e27de93b0200",
+        "android_client_info": {
+          "package_name": "com.example.tesis"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "6133589505-71qodlv8ua9v27ofisabl2cl9gvbe8q6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tesis",
+            "certificate_hash": "0125d3d8221df91b284cbe117fdb1ec22bcbb345"
+          }
+        },
+        {
+          "client_id": "6133589505-f735hcac7c5mogsag52j5luh7ieajhs6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWbHy15t6iZDems7thDeEa8LtV_3vL8Ew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "6133589505-f735hcac7c5mogsag52j5luh7ieajhs6.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "6133589505-u2v2ke3etluvsmr8k5o1bs7uspou5qgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.tesis"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

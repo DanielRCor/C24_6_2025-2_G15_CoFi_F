@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class InicioView extends StatelessWidget {
   const InicioView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final nombre = user?.displayName ?? 'Usuario';
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -13,7 +17,7 @@ class InicioView extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
             Text(
-              '¡Hola, Carlos!',
+              '¡Hola, $nombre!',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const Text('Resumen de tus finanzas.'),
@@ -47,7 +51,7 @@ class InicioView extends StatelessWidget {
               Text('Saldo Total'),
               SizedBox(height: 8),
               Text(
-                'S/ 2,580.75',
+                'S/ 0',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
             ],
@@ -161,7 +165,12 @@ class InicioView extends StatelessWidget {
   }
 
   Widget _buildGoalCard(
-      String title, double current, double total, double progress, BuildContext context) {
+    String title,
+    double current,
+    double total,
+    double progress,
+    BuildContext context,
+  ) {
     return GestureDetector(
       onTap: () => _showGoalActionsModal(context, title),
       child: Card(
@@ -205,8 +214,10 @@ class InicioView extends StatelessWidget {
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Gastos de la semana',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Gastos de la semana',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -221,8 +232,10 @@ class InicioView extends StatelessWidget {
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Por categorías',
-                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        'Por categorías',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
@@ -235,7 +248,12 @@ class InicioView extends StatelessWidget {
   }
 
   /// --- ITEM ENHANCED PARA LISTA DE METAS ---
-  Widget _buildGoalListItemEnhanced(String title, double current, double total, double progress) {
+  Widget _buildGoalListItemEnhanced(
+    String title,
+    double current,
+    double total,
+    double progress,
+  ) {
     return Card(
       child: ListTile(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -268,29 +286,42 @@ class InicioView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Agregar Transacción',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Agregar Transacción',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
-              TextField(decoration: const InputDecoration(labelText: 'Descripción')),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Descripción'),
+              ),
               const SizedBox(height: 8),
               TextField(
-                decoration: const InputDecoration(labelText: 'Monto', prefixText: 'S/ '),
+                decoration: const InputDecoration(
+                  labelText: 'Monto',
+                  prefixText: 'S/ ',
+                ),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 8),
-              TextField(decoration: const InputDecoration(labelText: 'Categoría')),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Categoría'),
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
                     child: const Text('Agregar Gasto'),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
                     child: const Text('Agregar Ingreso'),
                   ),
                 ],
@@ -311,15 +342,23 @@ class InicioView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Editar Presupuesto Mensual',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Editar Presupuesto Mensual',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
               TextField(
-                decoration: const InputDecoration(labelText: 'Nuevo presupuesto', prefixText: 'S/ '),
+                decoration: const InputDecoration(
+                  labelText: 'Nuevo presupuesto',
+                  prefixText: 'S/ ',
+                ),
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Guardar')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Guardar'),
+              ),
             ],
           ),
         );
@@ -359,13 +398,24 @@ class InicioView extends StatelessWidget {
                   ),
                   // Title
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Metas de Ahorro',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                        IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                        const Text(
+                          'Metas de Ahorro',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       ],
                     ),
                   ),
@@ -376,12 +426,27 @@ class InicioView extends StatelessWidget {
                       controller: controller,
                       padding: const EdgeInsets.all(20),
                       children: [
-                        const Text('Metas Actuales',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'Metas Actuales',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const SizedBox(height: 12),
-                        _buildGoalListItemEnhanced('Vacaciones', 1200, 3000, 0.4),
+                        _buildGoalListItemEnhanced(
+                          'Vacaciones',
+                          1200,
+                          3000,
+                          0.4,
+                        ),
                         const SizedBox(height: 8),
-                        _buildGoalListItemEnhanced('MacBook Pro', 4800, 6000, 0.72),
+                        _buildGoalListItemEnhanced(
+                          'MacBook Pro',
+                          4800,
+                          6000,
+                          0.72,
+                        ),
                       ],
                     ),
                   ),
@@ -403,19 +468,29 @@ class InicioView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(goalTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                goalTitle,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
                     child: const Text('Agregar Ahorro'),
                   ),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
                     child: const Text('Agregar Gasto'),
                   ),
                 ],
