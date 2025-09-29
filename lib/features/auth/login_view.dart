@@ -32,6 +32,10 @@ class _LoginViewState extends State<LoginView> {
     try {
       setState(() => _isLoading = true);
 
+      // 🔹 Forzar selector de cuentas
+      await _googleSignIn
+          .signOut(); // o use disconnect() si quieres quitar permisos
+
       // 1️⃣ Login con Google
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -56,6 +60,18 @@ class _LoginViewState extends State<LoginView> {
         return;
       }
 
+      // ✅ Validar dominio
+      if (!user.email!.endsWith('@tecsup.edu.pe')) {
+        setState(() => _isLoading = false);
+        await _auth.signOut(); // cerrar sesión de Firebase
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Solo se puede con cuenta @tecsup.edu.pe"),
+          ),
+        );
+        return;
+      }
+
       // 2️⃣ Obtener token de Firebase
       final idToken = await user.getIdToken();
 
@@ -73,7 +89,6 @@ class _LoginViewState extends State<LoginView> {
           SnackBar(content: Text("Bienvenido ${userData['name']}")),
         );
 
-        // Redirigir al home después del login
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         print("❌ Error en backend: ${response.body}");
