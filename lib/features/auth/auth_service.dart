@@ -1,0 +1,1 @@
+// Lógica conexión backend (placeholder)
