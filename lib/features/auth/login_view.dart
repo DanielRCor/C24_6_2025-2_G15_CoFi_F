@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -11,11 +15,95 @@ class _LoginViewState extends State<LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  bool _isLoading = false;
+
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// 🔑 Método para login con Google + llamada al backend
+  Future<void> _loginWithGoogle() async {
+    try {
+      setState(() => _isLoading = true);
+
+      // 🔹 Forzar selector de cuentas
+      await _googleSignIn
+          .signOut(); // o use disconnect() si quieres quitar permisos
+
+      // 1️⃣ Login con Google
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+
+      if (user == null) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No se pudo autenticar el usuario")),
+        );
+        return;
+      }
+
+      // ✅ Validar dominio
+      if (!user.email!.endsWith('@tecsup.edu.pe')) {
+        setState(() => _isLoading = false);
+        await _auth.signOut(); // cerrar sesión de Firebase
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Solo se puede con cuenta @tecsup.edu.pe"),
+          ),
+        );
+        return;
+      }
+
+      // 2️⃣ Obtener token de Firebase
+      final idToken = await user.getIdToken();
+
+      // 3️⃣ Llamar a tu backend en Vercel
+      final response = await http.get(
+        Uri.parse("https://co-fi-web.vercel.app/api/auth/me"),
+        headers: {"Authorization": "Bearer $idToken"},
+      );
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        print("✅ Usuario sincronizado: $userData");
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Bienvenido ${userData['name']}")),
+        );
+
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        print("❌ Error en backend: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al registrar en backend")),
+        );
+      }
+    } catch (e) {
+      print("❌ Error en login con Google: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -28,7 +116,6 @@ class _LoginViewState extends State<LoginView> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 40),
-              // Logo o Título
               const Text(
                 'COFI',
                 textAlign: TextAlign.center,
@@ -42,22 +129,17 @@ class _LoginViewState extends State<LoginView> {
               const Text(
                 'Bienvenido',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
                 'Maneja tus finanzas de forma\nconsciente y colaborativa',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 40),
-              // Toggle buttons para Login/Register
+
+              // Toggle de login / registro
               Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(30),
@@ -82,9 +164,7 @@ class _LoginViewState extends State<LoginView> {
                         child: const Text(
                           'Iniciar Sesión',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -106,7 +186,8 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               const SizedBox(height: 30),
-              // Campos de texto
+
+              // Campos de email y password (si decides usarlos)
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -128,13 +209,10 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
               const SizedBox(height: 30),
-              // Botón de inicio de sesión
+
               ElevatedButton(
                 onPressed: () {
-                  // Aquí iría la lógica de autenticación
-                  print('Intentando iniciar sesión...');
-                  // Al autenticar correctamente, navegamos al home
-                  Navigator.pushReplacementNamed(context, '/home');
+                  print("Login manual (email/pass) aún no implementado");
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
@@ -145,14 +223,11 @@ class _LoginViewState extends State<LoginView> {
                 ),
                 child: const Text(
                   'Iniciar sesión',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
+
               const SizedBox(height: 20),
-              // Separador
               const Row(
                 children: [
                   Expanded(child: Divider()),
@@ -164,28 +239,29 @@ class _LoginViewState extends State<LoginView> {
                 ],
               ),
               const SizedBox(height: 20),
+
               // Botón de Google
               OutlinedButton(
-                onPressed: () {
-                  print('Inicio de sesión con Google presionado');
-                },
+                onPressed: _isLoading ? null : _loginWithGoogle,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/google_icon.png', // Asegúrate de tener este asset
-                      height: 24,
-                    ),
-                    const SizedBox(width: 10),
-                    const Text('Google'),
-                  ],
-                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Image.asset(
+                            'assets/images/google_icon.png',
+                            height: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          const Text('Google'),
+                        ],
+                      ),
               ),
             ],
           ),

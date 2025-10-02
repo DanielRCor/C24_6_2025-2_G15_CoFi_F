@@ -8,7 +8,7 @@ class MicButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton(
       // TODO: Reemplazar con el ícono personalizado
-      child: const Icon(Icons.mic), 
+      child: const Icon(Icons.mic),
       onPressed: () {
         // TODO: Implementar funcionalidad del micrófono
         print('Micrófono presionado');

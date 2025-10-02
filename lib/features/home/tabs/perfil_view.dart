@@ -1,12 +1,13 @@
-// Tab Perfil
-// lib/features/home/tabs/perfil_view.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PerfilView extends StatelessWidget {
   const PerfilView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -16,30 +17,25 @@ class PerfilView extends StatelessWidget {
             const SizedBox(height: 40),
             const Text(
               'Mi Perfil',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const Text(
-              'Gestiona tu información personal y plan de suscripción.',
-              style: TextStyle(
-                color: Colors.grey,
-              ),
+              'Gestiona tu información personal.',
+              style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 24),
-            _buildProfilePhotoSection(),
+            _buildProfilePhotoSection(user),
             const SizedBox(height: 24),
-            _buildPersonalInfoSection(),
+            _buildPersonalInfoSection(user),
             const SizedBox(height: 24),
-            _buildLogoutButton(),
+            _buildLogoutButton(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfilePhotoSection() {
+  Widget _buildProfilePhotoSection(User? user) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -48,10 +44,7 @@ class PerfilView extends StatelessWidget {
           children: [
             const Text(
               'Foto de perfil',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Text(
               'Personaliza tu imagen de usuario',
@@ -64,16 +57,17 @@ class PerfilView extends StatelessWidget {
                   CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey[300],
-                    child: const Icon(
-                      Icons.person,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
+                    backgroundImage: user?.photoURL != null
+                        ? NetworkImage(user!.photoURL!)
+                        : null,
+                    child: user?.photoURL == null
+                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                        : null,
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () {
-                      // TODO: Implementar cambio de imagen
+                      // Aquí puedes agregar lógica para cambiar foto
                     },
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.grey[200],
@@ -89,7 +83,10 @@ class PerfilView extends StatelessWidget {
     );
   }
 
-  Widget _buildPersonalInfoSection() {
+  Widget _buildPersonalInfoSection(User? user) {
+    final nameController = TextEditingController(text: user?.displayName ?? '');
+    final emailController = TextEditingController(text: user?.email ?? '');
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -98,30 +95,30 @@ class PerfilView extends StatelessWidget {
           children: [
             const Text(
               'Información personal',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Text(
               'Actualiza tus datos personales',
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 16),
-            _buildTextField('Nombre completo', 'Carlos Mendoza'),
+            _buildTextField('Nombre completo', nameController),
             const SizedBox(height: 12),
-            _buildTextField('Correo Electrónico', 'carlos@gmail.com'),
+            _buildTextField(
+              'Correo Electrónico',
+              emailController,
+              enabled: false,
+            ), // No editable
             const SizedBox(height: 12),
-            _buildTextField('Teléfono', '+51 999 999 999'),
-            const SizedBox(height: 16),
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Implementar guardado de cambios
+                  // Aquí puedes agregar lógica para actualizar nombre o teléfono
+                  print('Guardando cambios...');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[200],
-                  foregroundColor: Colors.black,
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
                 ),
                 child: const Text('Guardar cambios'),
               ),
@@ -132,28 +129,31 @@ class PerfilView extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, String initialValue) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, {
+    bool enabled = true,
+  }) {
     return TextField(
+      controller: controller,
+      enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
       ),
-      controller: TextEditingController(text: initialValue),
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(BuildContext context) {
     return Center(
-      child: TextButton(
-        onPressed: () {
-          // TODO: Implementar cierre de sesión
+      child: ElevatedButton(
+        onPressed: () async {
+          await FirebaseAuth.instance.signOut();
+          Navigator.pushReplacementNamed(context, '/login');
         },
-        style: TextButton.styleFrom(
-          foregroundColor: Colors.red,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          foregroundColor: Colors.white,
         ),
         child: const Text('Cerrar sesión'),
       ),
