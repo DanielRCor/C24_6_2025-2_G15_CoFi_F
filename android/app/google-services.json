@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "6133589505-vtvl2o5fu1r8o4vq65f73m5uc0n9evhm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tesis",
+            "certificate_hash": "9c26a3eff65624e01efc9234166393bd399e2c50"
+          }
+        },
+        {
           "client_id": "6133589505-f735hcac7c5mogsag52j5luh7ieajhs6.apps.googleusercontent.com",
           "client_type": 3
         }
