@@ -1,8 +1,32 @@
 // Tab Grupos
 import 'package:flutter/material.dart';
+import 'create_group_page.dart';
 
-class GruposView extends StatelessWidget {
+class GruposView extends StatefulWidget {
   const GruposView({super.key});
+
+  @override
+  State<GruposView> createState() => _GruposViewState();
+}
+
+class _GruposViewState extends State<GruposView> {
+  final List<String> _groups = [];
+
+  Future<void> _onCreateGroupPressed() async {
+    final result = await Navigator.of(
+      context,
+    ).push<String>(MaterialPageRoute(builder: (_) => const CreateGroupPage()));
+
+    if (result != null && result.trim().isNotEmpty) {
+      setState(() {
+        _groups.add(result.trim());
+      });
+      // Mostrar confirmación
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Grupo "${result.trim()}" creado')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +68,7 @@ class GruposView extends StatelessWidget {
           // Botón Crear Nuevo Grupo
           Center(
             child: OutlinedButton.icon(
-              onPressed: () {
-                // Acción para crear grupo
-              },
+              onPressed: _onCreateGroupPressed,
               icon: Icon(Icons.add, color: Colors.orange[700]),
               label: const Text(
                 'Crear Nuevo Grupo',
@@ -77,13 +99,50 @@ class GruposView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          // Texto: Todavía no tienes Grupos
-          const Center(
-            child: Text(
-              'Todavía no tienes Grupos',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          // Mostrar lista de grupos o texto cuando no hay
+          if (_groups.isEmpty)
+            const Center(
+              child: Text(
+                'Todavía no tienes Grupos',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Mis grupos creados',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _groups.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final name = _groups[index];
+                    return Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: const Text('0 miembros • 0 gastos'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          // Acción futura: abrir detalles del grupo
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
-          ),
         ],
       ),
     );
