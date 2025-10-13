@@ -17,145 +17,134 @@ class PerfilView extends StatelessWidget {
             const SizedBox(height: 40),
             const Text(
               'Mi Perfil',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
             const Text(
               'Gestiona tu información personal.',
               style: TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 24),
-            _buildProfilePhotoSection(user),
-            const SizedBox(height: 24),
-            _buildPersonalInfoSection(user),
-            const SizedBox(height: 24),
+            _buildProfileCard(user),
+            const SizedBox(height: 18),
             _buildLogoutButton(context),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProfilePhotoSection(User? user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Foto de perfil',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'Personaliza tu imagen de usuario',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey[300],
-                    backgroundImage: user?.photoURL != null
-                        ? NetworkImage(user!.photoURL!)
-                        : null,
-                    child: user?.photoURL == null
-                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                        : null,
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () {
-                      // Aquí puedes agregar lógica para cambiar foto
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.grey[200],
-                    ),
-                    child: const Text('Cambiar imagen'),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPersonalInfoSection(User? user) {
-    final nameController = TextEditingController(text: user?.displayName ?? '');
-    final emailController = TextEditingController(text: user?.email ?? '');
+  Widget _buildProfileCard(User? user) {
+    final displayName = user?.displayName ?? 'Sin nombre';
+    final email = user?.email ?? 'Sin correo';
 
     return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 22.0, horizontal: 16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Información personal',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'Actualiza tus datos personales',
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            _buildTextField('Nombre completo', nameController),
-            const SizedBox(height: 12),
-            _buildTextField(
-              'Correo Electrónico',
-              emailController,
-              enabled: false,
-            ), // No editable
-            const SizedBox(height: 12),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  // Aquí puedes agregar lógica para actualizar nombre o teléfono
-                  print('Guardando cambios...');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+            // Título de la sección dentro de la tarjeta
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0, bottom: 6.0),
+                child: Text(
+                  'Información Personal',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
                 ),
-                child: const Text('Guardar cambios'),
               ),
+            ),
+            const SizedBox(height: 8),
+            // Avatar centrado
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 52,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage:
+                      user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                  child: user?.photoURL == null
+                      ? Icon(Icons.person, size: 56, color: Colors.grey[600])
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            // Nombre
+            Text(
+              'Nombre Completo',
+              style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              displayName,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+            // Correo
+            Text(
+              'Correo Electrónico',
+              style: TextStyle(color: Colors.grey[500], fontSize: 13),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              email,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    bool enabled = true,
-  }) {
-    return TextField(
-      controller: controller,
-      enabled: enabled,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
       ),
     );
   }
 
   Widget _buildLogoutButton(BuildContext context) {
-    return Center(
-      child: ElevatedButton(
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.logout_outlined, size: 20),
+        label: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 14.0),
+          child: Text(
+            'Cerrar Sesión',
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
         onPressed: () async {
-          await FirebaseAuth.instance.signOut();
-          Navigator.pushReplacementNamed(context, '/login');
+          try {
+            await FirebaseAuth.instance.signOut();
+            Navigator.pushReplacementNamed(context, '/login');
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error al cerrar sesión: $e')),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
+          backgroundColor: Colors.red[400],
           foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text('Cerrar sesión'),
       ),
     );
   }
