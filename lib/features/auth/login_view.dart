@@ -27,16 +27,14 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  /// 🔑 Método para login con Google + llamada al backend
+  /// 🔑 Login con Google + conexión a tu backend
   Future<void> _loginWithGoogle() async {
     try {
       setState(() => _isLoading = true);
 
-      // 🔹 Forzar selector de cuentas
-      await _googleSignIn
-          .signOut(); // o use disconnect() si quieres quitar permisos
+      // Forzar selección de cuenta
+      await _googleSignIn.signOut();
 
-      // 1️⃣ Login con Google
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _isLoading = false);
@@ -60,22 +58,22 @@ class _LoginViewState extends State<LoginView> {
         return;
       }
 
-      // ✅ Validar dominio
+      // Validar dominio
       if (!user.email!.endsWith('@tecsup.edu.pe')) {
+        await _auth.signOut();
         setState(() => _isLoading = false);
-        await _auth.signOut(); // cerrar sesión de Firebase
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Solo se puede con cuenta @tecsup.edu.pe"),
+            content: Text("Solo se puede iniciar sesión con @tecsup.edu.pe"),
           ),
         );
         return;
       }
 
-      // 2️⃣ Obtener token de Firebase
+      // Obtener token de Firebase
       final idToken = await user.getIdToken();
 
-      // 3️⃣ Llamar a tu backend en Vercel
+      // Llamar a tu backend
       final response = await http.get(
         Uri.parse("https://co-fi-web.vercel.app/api/auth/me"),
         headers: {"Authorization": "Bearer $idToken"},
@@ -98,9 +96,9 @@ class _LoginViewState extends State<LoginView> {
       }
     } catch (e) {
       print("❌ Error en login con Google: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -115,12 +113,12 @@ class _LoginViewState extends State<LoginView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
+              const SizedBox(height: 60),
               const Text(
                 'COFI',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 26,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
                 ),
@@ -139,55 +137,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 40),
 
-              // Toggle de login / registro
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.grey[200],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.2),
-                              spreadRadius: 1,
-                              blurRadius: 5,
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: const Text(
-                          'Iniciar Sesión',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacementNamed(context, '/register');
-                        },
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text(
-                          'Registrarse',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Campos de email y password (si decides usarlos)
+              // Campos de login manual
               TextField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -227,7 +177,7 @@ class _LoginViewState extends State<LoginView> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
               const Row(
                 children: [
                   Expanded(child: Divider()),
@@ -240,7 +190,7 @@ class _LoginViewState extends State<LoginView> {
               ),
               const SizedBox(height: 20),
 
-              // Botón de Google
+              // Botón Google
               OutlinedButton(
                 onPressed: _isLoading ? null : _loginWithGoogle,
                 style: OutlinedButton.styleFrom(

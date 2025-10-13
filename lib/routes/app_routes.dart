@@ -5,7 +5,6 @@ import '../features/onboarding/onboarding1_view.dart';
 import '../features/onboarding/onboarding2_view.dart';
 import '../features/onboarding/onboarding3_view.dart';
 import '../features/auth/login_view.dart';
-import '../features/auth/register_view.dart';
 import '../features/home/home_view.dart';
 class AppRoutes {
   static const String splash = '/splash';
@@ -23,7 +22,7 @@ class AppRoutes {
       onboarding2: (context) => const Onboarding2View(),
       onboarding3: (context) => const Onboarding3View(),
       login: (context) => const LoginView(),
-      register: (context) => const RegisterView(),
+      
       home: (context) => const HomeView(),
     };
   }
