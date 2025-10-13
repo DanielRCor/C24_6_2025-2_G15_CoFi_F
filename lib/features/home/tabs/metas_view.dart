@@ -1,9 +1,67 @@
 // Tab Metas
 // lib/features/home/tabs/metas_view.dart
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class MetasView extends StatelessWidget {
+class Goal {
+  final String title;
+  final double saved;
+  final double target;
+  final DateTime targetDate;
+
+  Goal({
+    required this.title,
+    required this.saved,
+    required this.target,
+    required this.targetDate,
+  });
+
+  double get progress => (target <= 0) ? 0 : (saved / target).clamp(0.0, 1.0);
+
+  int get daysLeft => targetDate.difference(DateTime.now()).inDays;
+}
+
+class MetasView extends StatefulWidget {
   const MetasView({super.key});
+
+  @override
+  State<MetasView> createState() => _MetasViewState();
+}
+
+class _MetasViewState extends State<MetasView> {
+  final List<Goal> _goals = [
+    Goal(
+      title: 'Vacaciones en la playa',
+      saved: 1200,
+      target: 3000,
+      targetDate: DateTime(2026, 1, 1),
+    ),
+    Goal(
+      title: 'MacBook Pro',
+      saved: 4800,
+      target: 6000,
+      targetDate: DateTime(2025, 7, 1),
+    ),
+    Goal(
+      title: 'Fondo de Emergencia',
+      saved: 3600,
+      target: 12000,
+      targetDate: DateTime(2026, 3, 1),
+    ),
+  ];
+
+  final _titleController = TextEditingController();
+  final _targetController = TextEditingController();
+  DateTime? _selectedDate;
+  final _dateController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _targetController.dispose();
+    _dateController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +95,12 @@ class MetasView extends StatelessWidget {
   }
 
   Widget _buildSummaryCards() {
+    // simple aggregated values
+    final totalSaved = _goals.fold<double>(0, (p, e) => p + e.saved);
+    final nearest = _goals.isEmpty
+        ? null
+        : _goals.reduce((a, b) => a.daysLeft < b.daysLeft ? a : b);
+
     return Row(
       children: [
         Expanded(
@@ -45,17 +109,24 @@ class MetasView extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'Meta más cercana',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'MacBook Pro',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    nearest != null ? nearest.title : '-',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text('15 días restantes'),
+                  Text(
+                    nearest != null
+                        ? '${nearest.daysLeft} días restantes'
+                        : '-',
+                  ),
                 ],
               ),
             ),
@@ -68,17 +139,20 @@ class MetasView extends StatelessWidget {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'Total Ahorrado',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'S/ 9,600',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'S/ ${totalSaved.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  Text('en 3 metas activas'),
+                  Text('en ${_goals.length} metas activas'),
                 ],
               ),
             ),
@@ -92,7 +166,7 @@ class MetasView extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton.icon(
-        onPressed: () => _showCreateGoalModal(context),
+        onPressed: () => _showGoalModal(context),
         icon: const Icon(Icons.add),
         label: const Text('Crear nueva Meta'),
         style: OutlinedButton.styleFrom(
@@ -104,46 +178,22 @@ class MetasView extends StatelessWidget {
   }
 
   Widget _buildGoalsList() {
+    if (_goals.isEmpty) {
+      return const Text('No tienes metas activas');
+    }
+
     return Column(
-      children: [
-        _buildGoalCard(
-          'Vacaciones en la playa',
-          1200,
-          3000,
-          0.4,
-          'Enero del 2026',
-        ),
-        const SizedBox(height: 12),
-        _buildGoalCard(
-          'MacBook Pro',
-          4800,
-          6000,
-          0.8,
-          'Julio del 2025',
-          isUrgent: true,
-          daysLeft: 15,
-        ),
-        const SizedBox(height: 12),
-        _buildGoalCard(
-          'Fondo de Emergencia',
-          3600,
-          12000,
-          0.4,
-          'Marzo del 2026',
-        ),
-      ],
+      children: List.generate(_goals.length * 2 - 1, (i) {
+        final index = i ~/ 2;
+        if (i.isOdd) return const SizedBox(height: 12);
+        final g = _goals[index];
+        return _buildGoalCardFromModel(g, index);
+      }),
     );
   }
 
-  Widget _buildGoalCard(
-    String title,
-    double saved,
-    double target,
-    double progress,
-    String date, {
-    bool isUrgent = false,
-    int? daysLeft,
-  }) {
+  Widget _buildGoalCardFromModel(Goal g, int index) {
+    final formattedDate = DateFormat.yMMMMd().format(g.targetDate);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -159,14 +209,14 @@ class MetasView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        title,
+                        g.title,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        date,
+                        formattedDate,
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -182,32 +232,32 @@ class MetasView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    '${(progress * 100).toInt()}%',
+                    '${(g.progress * 100).toInt()}% ',
                     style: const TextStyle(color: Colors.blue),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            LinearProgressIndicator(value: progress),
+            LinearProgressIndicator(value: g.progress),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'S/ $saved ahorrados',
+                  'S/ ${g.saved.toStringAsFixed(0)} ahorrados',
                   style: const TextStyle(color: Colors.grey),
                 ),
                 Text(
-                  'Meta: S/ $target',
+                  'Meta: S/ ${g.target.toStringAsFixed(0)}',
                   style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
-            if (isUrgent && daysLeft != null) ...[
+            if (g.daysLeft <= 30) ...[
               const SizedBox(height: 8),
               Text(
-                'Faltan $daysLeft días',
+                'Faltan ${g.daysLeft} días',
                 style: const TextStyle(color: Colors.orange),
               ),
             ],
@@ -216,14 +266,12 @@ class MetasView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () =>
+                      _showGoalModal(context, editingGoal: g, index: index),
                   child: const Text('Editar'),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {},
-                  child: const Text('Ahorrar'),
-                ),
+                ElevatedButton(onPressed: () {}, child: const Text('Ahorrar')),
               ],
             ),
           ],
@@ -232,7 +280,20 @@ class MetasView extends StatelessWidget {
     );
   }
 
-  void _showCreateGoalModal(BuildContext context) {
+  void _showGoalModal(BuildContext context, {Goal? editingGoal, int? index}) {
+    // Prefill controllers when editing
+    if (editingGoal != null) {
+      _titleController.text = editingGoal.title;
+      _targetController.text = editingGoal.target.toStringAsFixed(0);
+      _selectedDate = editingGoal.targetDate;
+      _dateController.text = DateFormat.yMMMMd().format(editingGoal.targetDate);
+    } else {
+      _titleController.clear();
+      _targetController.clear();
+      _dateController.clear();
+      _selectedDate = null;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -248,12 +309,16 @@ class MetasView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Crear nueva meta',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Text(
+                editingGoal != null ? 'Editar meta' : 'Crear nueva meta',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _titleController,
                 decoration: const InputDecoration(
                   labelText: 'Nombre de la meta',
                   border: OutlineInputBorder(),
@@ -261,6 +326,7 @@ class MetasView extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               TextField(
+                controller: _targetController,
                 decoration: const InputDecoration(
                   labelText: 'Monto objetivo',
                   border: OutlineInputBorder(),
@@ -269,19 +335,86 @@ class MetasView extends StatelessWidget {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
-              TextField(
-                decoration: const InputDecoration(
-                  labelText: 'Fecha objetivo',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
+              GestureDetector(
+                onTap: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate:
+                        _selectedDate ?? now.add(const Duration(days: 7)),
+                    firstDate: now,
+                    lastDate: DateTime(now.year + 5),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDate = picked;
+                      _dateController.text = DateFormat.yMMMMd().format(picked);
+                    });
+                  }
+                },
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: _dateController,
+                    decoration: InputDecoration(
+                      labelText: 'Fecha objetivo',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: const Icon(Icons.calendar_today),
+                      hintText: 'Selecciona una fecha',
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Crear Meta'),
+                  onPressed: () {
+                    final title = _titleController.text.trim();
+                    final targetText = _targetController.text.trim();
+                    final target = double.tryParse(
+                      targetText.replaceAll(',', '.'),
+                    );
+
+                    if (title.isEmpty ||
+                        target == null ||
+                        _selectedDate == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Por favor completa todos los campos válidos',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (editingGoal != null && index != null) {
+                      final updated = Goal(
+                        title: title,
+                        saved: editingGoal.saved,
+                        target: target,
+                        targetDate: _selectedDate!,
+                      );
+                      setState(() {
+                        _goals[index] = updated;
+                      });
+                    } else {
+                      final newGoal = Goal(
+                        title: title,
+                        saved: 0,
+                        target: target,
+                        targetDate: _selectedDate!,
+                      );
+                      setState(() {
+                        _goals.add(newGoal);
+                      });
+                    }
+
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    editingGoal != null ? 'Guardar cambios' : 'Crear Meta',
+                  ),
                 ),
               ),
               const SizedBox(height: 16),

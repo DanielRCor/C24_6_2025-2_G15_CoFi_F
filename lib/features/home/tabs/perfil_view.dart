@@ -20,10 +20,7 @@ class PerfilView extends StatelessWidget {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Gestiona tu información personal.',
-              style: TextStyle(color: Colors.grey),
-            ),
+
             const SizedBox(height: 24),
             _buildProfileCard(user),
             const SizedBox(height: 18),
@@ -80,8 +77,9 @@ class PerfilView extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 52,
                   backgroundColor: Colors.grey[200],
-                  backgroundImage:
-                      user?.photoURL != null ? NetworkImage(user!.photoURL!) : null,
+                  backgroundImage: user?.photoURL != null
+                      ? NetworkImage(user!.photoURL!)
+                      : null,
                   child: user?.photoURL == null
                       ? Icon(Icons.person, size: 56, color: Colors.grey[600])
                       : null,
@@ -125,10 +123,7 @@ class PerfilView extends StatelessWidget {
         icon: const Icon(Icons.logout_outlined, size: 20),
         label: const Padding(
           padding: EdgeInsets.symmetric(vertical: 14.0),
-          child: Text(
-            'Cerrar Sesión',
-            style: TextStyle(fontSize: 16),
-          ),
+          child: Text('Cerrar Sesión', style: TextStyle(fontSize: 16)),
         ),
         onPressed: () async {
           try {
@@ -143,7 +138,9 @@ class PerfilView extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red[400],
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
