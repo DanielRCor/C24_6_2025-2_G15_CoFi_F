@@ -1,1 +1,0 @@
-// UI de un grupo

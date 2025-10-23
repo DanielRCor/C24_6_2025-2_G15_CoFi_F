@@ -1,6 +1,6 @@
 {
-    "name": "tesis",
-    "short_name": "tesis",
+    "name": "CoFi",
+    "short_name": "CoFi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

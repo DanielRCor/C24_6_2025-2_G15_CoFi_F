@@ -1,1 +1,0 @@
-// Vista lista de grupos (swipe)

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "tesis" "\0"
+            VALUE "FileDescription", "CoFi" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "tesis" "\0"
+            VALUE "InternalName", "CoFi" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "tesis.exe" "\0"
-            VALUE "ProductName", "tesis" "\0"
+            VALUE "OriginalFilename", "CoFi.exe" "\0"
+            VALUE "ProductName", "CoFi" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

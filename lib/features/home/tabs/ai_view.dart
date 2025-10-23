@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tesis/core/services/ai_service.dart';
+import 'package:cofi/core/services/ai_service.dart';
 
 class AiView extends StatefulWidget {
   const AiView({super.key});
@@ -13,7 +13,9 @@ class _AiViewState extends State<AiView> {
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
   bool _isTyping = false;
-  bool _concise = false;
+  bool _concise = true; // por defecto pedimos respuestas concisas
+  String _lastSent = '';
+  DateTime? _lastSentAt;
 
   @override
   void initState() {
@@ -38,6 +40,15 @@ class _AiViewState extends State<AiView> {
   void _sendMessage({String? predefinedMessage}) async {
     final text = predefinedMessage ?? _messageController.text.trim();
     if (text.isEmpty) return;
+
+    // Evitar envíos repetidos idénticos consecutivos en un corto período (debounce 1.5s)
+    final now = DateTime.now();
+    if (_lastSent.isNotEmpty && _lastSent == text && _lastSentAt != null) {
+      final diff = now.difference(_lastSentAt!).inMilliseconds;
+      if (diff < 1500) return;
+    }
+    _lastSent = text;
+    _lastSentAt = now;
 
     setState(() {
       _messages.add(
@@ -78,7 +89,7 @@ class _AiViewState extends State<AiView> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Header con gradiente (igual que tu diseño original)
+        // Header con gradiente
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -126,25 +137,6 @@ class _AiViewState extends State<AiView> {
                                   color: Colors.white,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Text(
-                                  'Breve',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Switch(
-                                  value: _concise,
-                                  activeColor: Colors.white,
-                                  onChanged: (v) =>
-                                      setState(() => _concise = v),
-                                ),
-                              ],
                             ),
                           ],
                         ),

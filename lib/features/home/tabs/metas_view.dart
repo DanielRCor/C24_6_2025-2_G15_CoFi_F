@@ -2,14 +2,17 @@
 // lib/features/home/tabs/metas_view.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/services/metas_service.dart';
 
 class Goal {
+  final String? id;
   final String title;
   final double saved;
   final double target;
   final DateTime targetDate;
 
   Goal({
+    this.id,
     required this.title,
     required this.saved,
     required this.target,
@@ -19,6 +22,51 @@ class Goal {
   double get progress => (target <= 0) ? 0 : (saved / target).clamp(0.0, 1.0);
 
   int get daysLeft => targetDate.difference(DateTime.now()).inDays;
+
+  // Robust mapper from API response
+  factory Goal.fromMap(Map<String, dynamic> m) {
+    double _toDouble(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v.replaceAll(',', '.')) ?? 0.0;
+      return 0.0;
+    }
+
+    DateTime _parseDate(dynamic v) {
+      if (v == null) return DateTime.now();
+      if (v is DateTime) return v;
+      if (v is int) return DateTime.fromMillisecondsSinceEpoch(v);
+      if (v is String) {
+        try {
+          return DateTime.parse(v);
+        } catch (_) {
+          // Try common formats via DateTime.tryParse
+          return DateTime.tryParse(v) ?? DateTime.now();
+        }
+      }
+      return DateTime.now();
+    }
+
+    final id = m['id']?.toString() ?? m['_id']?.toString();
+    final title = (m['title'] ?? m['name'] ?? '') as String;
+    final saved = _toDouble(
+      m['currentAmount'] ?? m['saved'] ?? m['savedAmount'] ?? m['amountSaved'],
+    );
+    final target = _toDouble(
+      m['targetAmount'] ?? m['target'] ?? m['goalAmount'],
+    );
+    final targetDate = _parseDate(
+      m['targetDate'] ?? m['date'] ?? m['goalDate'],
+    );
+
+    return Goal(
+      id: id,
+      title: title,
+      saved: saved,
+      target: target,
+      targetDate: targetDate,
+    );
+  }
 }
 
 class MetasView extends StatefulWidget {
@@ -29,26 +77,10 @@ class MetasView extends StatefulWidget {
 }
 
 class _MetasViewState extends State<MetasView> {
-  final List<Goal> _goals = [
-    Goal(
-      title: 'Vacaciones en la playa',
-      saved: 1200,
-      target: 3000,
-      targetDate: DateTime(2026, 1, 1),
-    ),
-    Goal(
-      title: 'MacBook Pro',
-      saved: 4800,
-      target: 6000,
-      targetDate: DateTime(2025, 7, 1),
-    ),
-    Goal(
-      title: 'Fondo de Emergencia',
-      saved: 3600,
-      target: 12000,
-      targetDate: DateTime(2026, 3, 1),
-    ),
-  ];
+  final List<Goal> _goals = [];
+  final GoalService _service = GoalService();
+  bool _isLoading = false;
+  bool _isSaving = false;
 
   final _titleController = TextEditingController();
   final _targetController = TextEditingController();
@@ -61,6 +93,40 @@ class _MetasViewState extends State<MetasView> {
     _targetController.dispose();
     _dateController.dispose();
     super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!mounted) return;
+    setState(fn);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGoals();
+  }
+
+  Future<void> _loadGoals() async {
+    _safeSetState(() {
+      _isLoading = true;
+    });
+    try {
+      final data = await _service.getGoals();
+      _safeSetState(() {
+        _goals.clear();
+        _goals.addAll(data.map((e) => Goal.fromMap(e)).toList());
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error cargando metas: ${e.toString()}')),
+        );
+      }
+    } finally {
+      _safeSetState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -178,6 +244,15 @@ class _MetasViewState extends State<MetasView> {
   }
 
   Widget _buildGoalsList() {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     if (_goals.isEmpty) {
       return const Text('No tienes metas activas');
     }
@@ -271,7 +346,197 @@ class _MetasViewState extends State<MetasView> {
                   child: const Text('Editar'),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: () {}, child: const Text('Ahorrar')),
+                TextButton(
+                  onPressed: () async {
+                    // Confirm delete
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Eliminar meta'),
+                        content: const Text(
+                          '¿Estás seguro que deseas eliminar esta meta?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Eliminar'),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirmed == true) {
+                      if (g.id == null) {
+                        _safeSetState(() {
+                          _goals.removeAt(index);
+                        });
+                        return;
+                      }
+                      try {
+                        _safeSetState(() {
+                          _isSaving = true;
+                        });
+                        await _service.deleteGoal(g.id!);
+                        _safeSetState(() {
+                          _goals.removeAt(index);
+                        });
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Meta eliminada')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Error eliminando meta: ${e.toString()}',
+                              ),
+                            ),
+                          );
+                        }
+                      } finally {
+                        _safeSetState(() {
+                          _isSaving = false;
+                        });
+                      }
+                    }
+                  },
+                  child: const Text(
+                    'Eliminar',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () async {
+                    final amountController = TextEditingController();
+                    final confirmed = await showModalBottomSheet<bool>(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (ctx) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                            left: 16,
+                            right: 16,
+                            top: 16,
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Agregar Ahorro',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: amountController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                decoration: const InputDecoration(
+                                  labelText: 'Monto a ahorrar',
+                                  prefixText: 'S/ ',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('Agregar'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+
+                    if (confirmed != true) return;
+
+                    final text = amountController.text.trim();
+                    final amount = double.tryParse(text.replaceAll(',', '.'));
+                    if (amount == null || amount <= 0) {
+                      if (mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Ingresa un monto válido'),
+                          ),
+                        );
+                      return;
+                    }
+
+                    // find index and goal
+                    final gIndex = index;
+                    if (gIndex < 0 || gIndex >= _goals.length) return;
+                    final g = _goals[gIndex];
+
+                    _safeSetState(() {
+                      _isSaving = true;
+                    });
+
+                    try {
+                      final newSaved = (g.saved) + amount;
+                      if (g.id != null) {
+                        // Update backend (DB field: currentAmount)
+                        await _service.updateGoal(g.id!, {
+                          'currentAmount': newSaved,
+                        });
+                      }
+
+                      // Update local model regardless
+                      final updated = Goal(
+                        id: g.id,
+                        title: g.title,
+                        saved: newSaved,
+                        target: g.target,
+                        targetDate: g.targetDate,
+                      );
+                      _safeSetState(() {
+                        _goals[gIndex] = updated;
+                      });
+
+                      if (mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Ahorro agregado')),
+                        );
+                    } catch (e) {
+                      if (mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Error al agregar ahorro: ${e.toString()}',
+                            ),
+                          ),
+                        );
+                    } finally {
+                      _safeSetState(() {
+                        _isSaving = false;
+                      });
+                    }
+                  },
+                  child: const Text('Ahorrar'),
+                ),
               ],
             ),
           ],
@@ -346,7 +611,7 @@ class _MetasViewState extends State<MetasView> {
                     lastDate: DateTime(now.year + 5),
                   );
                   if (picked != null) {
-                    setState(() {
+                    _safeSetState(() {
                       _selectedDate = picked;
                       _dateController.text = DateFormat.yMMMMd().format(picked);
                     });
@@ -368,50 +633,91 @@ class _MetasViewState extends State<MetasView> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    final title = _titleController.text.trim();
-                    final targetText = _targetController.text.trim();
-                    final target = double.tryParse(
-                      targetText.replaceAll(',', '.'),
-                    );
+                  onPressed: _isSaving
+                      ? null
+                      : () async {
+                          final title = _titleController.text.trim();
+                          final targetText = _targetController.text.trim();
+                          final target = double.tryParse(
+                            targetText.replaceAll(',', '.'),
+                          );
 
-                    if (title.isEmpty ||
-                        target == null ||
-                        _selectedDate == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Por favor completa todos los campos válidos',
-                          ),
-                        ),
-                      );
-                      return;
-                    }
+                          if (title.isEmpty ||
+                              target == null ||
+                              _selectedDate == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Por favor completa todos los campos válidos',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
 
-                    if (editingGoal != null && index != null) {
-                      final updated = Goal(
-                        title: title,
-                        saved: editingGoal.saved,
-                        target: target,
-                        targetDate: _selectedDate!,
-                      );
-                      setState(() {
-                        _goals[index] = updated;
-                      });
-                    } else {
-                      final newGoal = Goal(
-                        title: title,
-                        saved: 0,
-                        target: target,
-                        targetDate: _selectedDate!,
-                      );
-                      setState(() {
-                        _goals.add(newGoal);
-                      });
-                    }
+                          _safeSetState(() {
+                            _isSaving = true;
+                          });
 
-                    Navigator.pop(context);
-                  },
+                          try {
+                            if (editingGoal != null &&
+                                index != null &&
+                                editingGoal.id != null) {
+                              final data = {
+                                'title': title,
+                                'targetAmount': target,
+                                'targetDate': _selectedDate!.toIso8601String(),
+                              };
+                              await _service.updateGoal(editingGoal.id!, data);
+                              // Update local model
+                              final updated = Goal(
+                                id: editingGoal.id,
+                                title: title,
+                                saved: editingGoal.saved,
+                                target: target,
+                                targetDate: _selectedDate!,
+                              );
+                              _safeSetState(() {
+                                _goals[index] = updated;
+                              });
+                              if (mounted)
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Meta actualizada'),
+                                  ),
+                                );
+                            } else {
+                              final created = await _service.createGoal(
+                                title: title,
+                                targetAmount: target,
+                                targetDate: _selectedDate,
+                              );
+                              // Convert response and add
+                              final newGoal = Goal.fromMap(created);
+                              _safeSetState(() {
+                                _goals.add(newGoal);
+                              });
+                              if (mounted)
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Meta creada')),
+                                );
+                            }
+                            Navigator.pop(context);
+                          } catch (e) {
+                            if (mounted)
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Error guardando meta: ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                          } finally {
+                            _safeSetState(() {
+                              _isSaving = false;
+                            });
+                          }
+                        },
                   child: Text(
                     editingGoal != null ? 'Guardar cambios' : 'Crear Meta',
                   ),
