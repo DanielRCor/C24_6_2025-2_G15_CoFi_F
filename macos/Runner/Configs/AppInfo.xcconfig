@@ -5,10 +5,11 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = tesis
+// Application product name shown in macOS
+PRODUCT_NAME = CoFi
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.tesis
+PRODUCT_BUNDLE_IDENTIFIER = com.example.cofi
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.compile.JavaCompile
+
 buildscript {
     repositories {
         google()
@@ -28,4 +31,18 @@ subprojects {
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
+}
+
+// Ensure all subprojects (including plugins) compile with Java 11 and Kotlin jvmTarget 11
+subprojects {
+    // Configure Java compile tasks if present
+    tasks.withType(org.gradle.api.tasks.compile.JavaCompile::class.java).configureEach {
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
+    }
+
+    // Configure Kotlin compile tasks if present
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class.java).configureEach {
+        kotlinOptions.jvmTarget = "11"
+    }
 }

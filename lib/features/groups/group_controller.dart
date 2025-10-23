@@ -1,1 +1,0 @@
-// Lógica de grupos (placeholder)

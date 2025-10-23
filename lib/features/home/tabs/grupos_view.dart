@@ -1,6 +1,7 @@
 // Tab Grupos
 import 'package:flutter/material.dart';
-import 'create_group_page.dart';
+import '../../../core/services/group_service.dart';
+import 'group_detail_page.dart';
 
 class GruposView extends StatefulWidget {
   const GruposView({super.key});
@@ -10,21 +11,118 @@ class GruposView extends StatefulWidget {
 }
 
 class _GruposViewState extends State<GruposView> {
-  final List<String> _groups = [];
+  final List<Map<String, dynamic>> _groups = [];
+  final GroupService _groupService = GroupService();
+  bool _isLoading = false;
+  String? _error;
 
   Future<void> _onCreateGroupPressed() async {
-    final result = await Navigator.of(
-      context,
-    ).push<String>(MaterialPageRoute(builder: (_) => const CreateGroupPage()));
+    await _showCreateGroupDialog();
+  }
 
-    if (result != null && result.trim().isNotEmpty) {
+  Future<void> _showCreateGroupDialog() async {
+    final TextEditingController controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final created = await showDialog<String?>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Crear Nuevo Grupo'),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del grupo',
+                hintText: 'Ej. Viaje con amigos',
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) {
+                  return 'Ingresa un nombre válido';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(context).pop(controller.text.trim());
+                }
+              },
+              child: const Text('Crear'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (created != null && created.isNotEmpty) {
+      // Attempt to create group via API
+      setState(() => _isLoading = true);
+      try {
+        final resp = await _groupService.createGroup(name: created);
+        // Assume API returns created group with 'name' or 'id' fields
+        final name = resp['name'] ?? created;
+        if (!mounted) return;
+        setState(() {
+          _groups.insert(0, {'name': name});
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Grupo "$name" creado')));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error al crear grupo: $e')));
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGroups();
+  }
+
+  Future<void> _fetchGroups() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final data = await _groupService.getUserGroups();
+      // Expecting a List of group objects; map to names
+      final groups = <Map<String, dynamic>>[];
+      for (final item in data) {
+        if (item is Map<String, dynamic>) {
+          groups.add(item);
+        } else if (item is Map) {
+          groups.add(Map<String, dynamic>.from(item));
+        }
+      }
+      if (!mounted) return;
       setState(() {
-        _groups.add(result.trim());
+        _groups.clear();
+        _groups.addAll(groups);
       });
-      // Mostrar confirmación
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Grupo "${result.trim()}" creado')),
-      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+      });
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -57,6 +155,13 @@ class _GruposViewState extends State<GruposView> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 28),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Center(child: Text('Error:')),
+            Center(child: Text(_error!)),
+            const SizedBox(height: 12),
+          ],
           // Texto: Todavía no tienes invitaciones
           const Center(
             child: Text(
@@ -122,7 +227,8 @@ class _GruposViewState extends State<GruposView> {
                   itemCount: _groups.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final name = _groups[index];
+                    final group = _groups[index];
+                    final name = group['name']?.toString() ?? 'Grupo';
                     return Card(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -135,7 +241,17 @@ class _GruposViewState extends State<GruposView> {
                         subtitle: const Text('0 miembros • 0 gastos'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          // Acción futura: abrir detalles del grupo
+                          final id =
+                              group['id']?.toString() ??
+                              group['_id']?.toString();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => GroupDetailPage(
+                                groupId: id,
+                                groupData: group,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     );
